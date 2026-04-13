@@ -1,21 +1,33 @@
-# Example Cloud Run job configuration. Use jobs for long-running tasks like nightly indexing or evaluations.
 apiVersion: run.googleapis.com/v1
 kind: Job
 metadata:
-  name: professional-assistant-indexer
-  namespace: default
+  name: jami-agent-indexer
 spec:
   template:
     spec:
       template:
+        metadata:
+          annotations:
+            run.googleapis.com/cloudsql-instances: PROJECT_ID:REGION:INSTANCE_NAME
         spec:
+          serviceAccountName: jami-agent-runtime@PROJECT_ID.iam.gserviceaccount.com
           containers:
-            - image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/assistant/professional-assistant-api:latest
-              command: ["bash", "-c", "python app/jobs/index_documents.py"]
+            - image: REGION-docker.pkg.dev/PROJECT_ID/jami-agent/api:latest
+              command: ["python", "-m", "app.jobs.index_documents"]
               env:
                 - name: OPENAI_API_KEY
-                  value: "{{ secrets.OPENAI_API_KEY }}"
+                  valueFrom:
+                    secretKeyRef:
+                      name: OPENAI_API_KEY
+                      key: latest
                 - name: DATABASE_URL
-                  value: "{{ secrets.DATABASE_URL }}"
+                  valueFrom:
+                    secretKeyRef:
+                      name: DATABASE_URL
+                      key: latest
+                - name: ENVIRONMENT
+                  value: production
+                - name: DEBUG
+                  value: "false"
           restartPolicy: Never
       taskCount: 1

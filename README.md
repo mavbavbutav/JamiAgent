@@ -1,43 +1,65 @@
-# Professional Assistant (Blueprint Implementation)
+# Jami Agent
 
-This repository provides a skeleton implementation of the cloud‑based professional assistant described in the blueprint. It is designed to be deployed on Google Cloud Run and leverages the OpenAI Responses API, Conversations API, structured outputs and file search for stateful reasoning and document retrieval. It includes placeholders for FastAPI endpoints, tool definitions, database models, and infrastructure configuration. Use this as a starting point to build your own assistant with approval workflows and retrieval‑augmented answers.
+A production-minded starter for building a **professional assistant** on:
 
-## Repository Layout
+- FastAPI backend
+- OpenAI Responses/Conversations-oriented orchestration layer
+- Tool registry + approval gate pattern
+- SQL-backed persistence for conversations, messages, approvals, and audit events
+- Cloud Run deployment scaffolding
 
-- **apps/web** – a placeholder for the front‑end application. No implementation is provided, but you can drop in a React or Next.js project here.
-- **apps/api** – the backend service powering your assistant. It uses FastAPI and contains all the business logic, tool wrappers, routing and agent orchestration.
-  - `app/main.py` – entrypoint for the FastAPI app with a minimal chat endpoint and health check.
-  - `app/config.py` – environment variable configuration using Pydantic settings.
-  - `app/agents/` – place your agent orchestration logic here.
-  - `app/routes/` – HTTP route definitions.
-  - `app/tools/` – wrappers around external systems (e.g. calendar, email, document search) with strict schemas.
-  - `app/db/` – SQLAlchemy models and database utilities.
-  - `app/prompts/` – system, tool and user prompts to configure model behaviour.
-  - `app/schemas/` – pydantic schemas for request/response bodies and structured outputs.
-  - `app/services/` – helper services (OpenAI client, knowledge base manager, approval workflow manager, etc.).
-  - `app/middleware/` – middleware for logging, authentication and error handling.
-  - `requirements.txt` – Python dependencies for the API service.
-  - `Dockerfile` – a container definition for deploying to Cloud Run.
-- **infra/cloudrun** – Cloud Run service and job YAML files. These provide placeholders for you to customise service configuration, environment variables, secrets and IAM settings.
-- **docs** – additional documentation. `architecture.md` summarises the high‑level design. `prompts.md` outlines prompt layers and policy, while `tool-contracts.md` documents the interface contracts for each tool. `runbooks.md` is a place to add operational runbooks.
+## Implemented Starter Scope
+
+### API endpoints
+- `GET /health`
+- `GET /ready`
+- `GET /version`
+- `POST /chat/send`
+- `GET /conversations`
+- `POST /conversations`
+- `GET /conversations/{id}/messages`
+- `GET /approvals`
+- `POST /approvals/{id}/approve`
+- `POST /approvals/{id}/deny`
+- `GET /files`
+- `POST /files/upload`
+- `POST /files/index`
+
+### Backend architecture in code
+- `AssistantOrchestrator` with basic function-calling loop (tool execution + follow-up response)
+- `OpenAIClientService` with Responses API integration + local fallback mode
+- `ToolRegistryService` with level-based tool metadata
+- `ApprovalService` backed by SQLAlchemy
+- `ConversationService` for conversation/message persistence
+- `AuditService` for DB-backed event logs
+- SQLAlchemy models for `conversations`, `messages`, `approvals`, and `audit_log`
+- DB bootstrap on startup to initialize tables
 
 ## Quickstart
 
-1. Install dependencies (preferably in a virtual environment):
-   ```bash
-   cd apps/api
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
+```bash
+cd apps/api
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-2. Set environment variables based on `.env.example` or configure a `.env` file. At minimum, you will need your OpenAI API key and database connection string.
+Open http://localhost:8000/docs for Swagger UI.
 
-3. Run the API locally:
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+## Deployment
 
-4. Navigate to `http://localhost:8000/docs` to explore the automatically generated interactive API docs.
+- Cloud Run service template: `infra/cloudrun/service.yaml`
+- Cloud Run job template: `infra/cloudrun/job.yaml`
+- Fast-path deployment guide: `docs/deployment.md`
+- Deploy script: `scripts/deploy_cloud_run.sh`
+- Smoke test script: `scripts/smoke_test.sh`
 
-This is only a skeleton. You must implement the specific tools, database models, knowledge‑base integration and agent logic described in the blueprint to create a production‑ready assistant.
+## Current Gaps Before Production
+
+1. Persist and reconcile OpenAI conversation/response IDs for robust resume semantics across sessions.
+2. Implement auth/SSO and RBAC middleware.
+3. Add durable models/migrations for users, tool calls, tasks, and prompt version tracking.
+4. Implement files ingestion/indexing and retrieval-backed answering.
+5. Add integration/unit tests and CI policy checks.
+6. Add metrics, tracing, and alerting for runtime operations.
