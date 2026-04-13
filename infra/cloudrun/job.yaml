@@ -1,0 +1,21 @@
+# Example Cloud Run job configuration. Use jobs for long-running tasks like nightly indexing or evaluations.
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: professional-assistant-indexer
+  namespace: default
+spec:
+  template:
+    spec:
+      template:
+        spec:
+          containers:
+            - image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/assistant/professional-assistant-api:latest
+              command: ["bash", "-c", "python app/jobs/index_documents.py"]
+              env:
+                - name: OPENAI_API_KEY
+                  value: "{{ secrets.OPENAI_API_KEY }}"
+                - name: DATABASE_URL
+                  value: "{{ secrets.DATABASE_URL }}"
+          restartPolicy: Never
+      taskCount: 1

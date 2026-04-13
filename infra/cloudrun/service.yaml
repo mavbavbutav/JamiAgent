@@ -1,0 +1,38 @@
+# Example Cloud Run service configuration (yaml format). Customize this before deployment.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: professional-assistant-api
+  namespace: default
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"  # Keep one instance warm
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 3600
+      containers:
+        - image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/assistant/professional-assistant-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OPENAI_API_KEY
+              value: "{{ secrets.OPENAI_API_KEY }}"
+            - name: DATABASE_URL
+              value: "{{ secrets.DATABASE_URL }}"
+            - name: OAUTH_CLIENT_ID
+              value: "{{ secrets.OAUTH_CLIENT_ID }}"
+            - name: OAUTH_CLIENT_SECRET
+              value: "{{ secrets.OAUTH_CLIENT_SECRET }}"
+            - name: OAUTH_REDIRECT_URI
+              value: "{{ secrets.OAUTH_REDIRECT_URI }}"
+            - name: SECRET_KEY
+              value: "{{ secrets.SECRET_KEY }}"
+            - name: TIMEZONE
+              value: "America/Chicago"
+            - name: ENVIRONMENT
+              value: "production"
+            - name: DEBUG
+              value: "false"
