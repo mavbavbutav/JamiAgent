@@ -1,38 +1,74 @@
-# Example Cloud Run service configuration (yaml format). Customize this before deployment.
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: professional-assistant-api
-  namespace: default
+  name: jami-agent-api
 spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/minScale: "1"  # Keep one instance warm
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
         run.googleapis.com/execution-environment: gen2
+        # Replace with your Cloud SQL connection name.
+        run.googleapis.com/cloudsql-instances: PROJECT_ID:REGION:INSTANCE_NAME
     spec:
+      serviceAccountName: jami-agent-runtime@PROJECT_ID.iam.gserviceaccount.com
       containerConcurrency: 80
-      timeoutSeconds: 3600
+      timeoutSeconds: 300
       containers:
-        - image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/assistant/professional-assistant-api:latest
+        - image: REGION-docker.pkg.dev/PROJECT_ID/jami-agent/api:latest
           ports:
             - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 5
           env:
             - name: OPENAI_API_KEY
-              value: "{{ secrets.OPENAI_API_KEY }}"
+              valueFrom:
+                secretKeyRef:
+                  name: OPENAI_API_KEY
+                  key: latest
             - name: DATABASE_URL
-              value: "{{ secrets.DATABASE_URL }}"
+              valueFrom:
+                secretKeyRef:
+                  name: DATABASE_URL
+                  key: latest
             - name: OAUTH_CLIENT_ID
-              value: "{{ secrets.OAUTH_CLIENT_ID }}"
+              valueFrom:
+                secretKeyRef:
+                  name: OAUTH_CLIENT_ID
+                  key: latest
             - name: OAUTH_CLIENT_SECRET
-              value: "{{ secrets.OAUTH_CLIENT_SECRET }}"
+              valueFrom:
+                secretKeyRef:
+                  name: OAUTH_CLIENT_SECRET
+                  key: latest
             - name: OAUTH_REDIRECT_URI
-              value: "{{ secrets.OAUTH_REDIRECT_URI }}"
+              valueFrom:
+                secretKeyRef:
+                  name: OAUTH_REDIRECT_URI
+                  key: latest
             - name: SECRET_KEY
-              value: "{{ secrets.SECRET_KEY }}"
+              valueFrom:
+                secretKeyRef:
+                  name: SECRET_KEY
+                  key: latest
             - name: TIMEZONE
-              value: "America/Chicago"
+              value: America/Chicago
             - name: ENVIRONMENT
-              value: "production"
+              value: production
             - name: DEBUG
               value: "false"
